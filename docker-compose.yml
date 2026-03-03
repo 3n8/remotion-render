@@ -1,0 +1,15 @@
+services:
+  remotion-render:
+    image: ghcr.io/3n8/remotion-render:latest
+    container_name: remotion-render
+    restart: always
+    user: "${PUID}:${PGID}"
+    ports:
+      - "3003:3003"
+    devices:
+      - /dev/dri:/dev/dri
+    environment:
+      - TZ=${TZ}
+      - REMOTION_PORT=3003
+    volumes:
+      - ${DOCKER_HOME}/remotion-render:/config
