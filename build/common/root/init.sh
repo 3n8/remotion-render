@@ -116,7 +116,8 @@ if [[ -d "/app" ]] && [[ -f "/app/package.json" ]] && [[ -d "/app/src" ]]; then
     echo "[info] Valid Remotion project found at /app" | ts '%Y-%m-%d %H:%M:%.S'
     if [[ ! -d "/app/node_modules" ]]; then
         echo "[info] Running npm install in /app..." | ts '%Y-%m-%d %H:%M:%.S'
-        cd /app && npm install 2>&1 | ts '%Y-%m-%d %H:%M:%.S' || echo "[warn] npm install failed" | ts '%Y-%m-%d %H:%M:%.S'
+        cd /app && npm cache clean --force 2>/dev/null || true
+        npm install --cache /tmp/.npm 2>&1 | ts '%Y-%m-%d %H:%M:%.S' || echo "[warn] npm install failed" | ts '%Y-%m-%d %H:%M:%.S'
     else
         echo "[info] node_modules already exists, skipping npm install" | ts '%Y-%m-%d %H:%M:%.S'
     fi
@@ -128,7 +129,8 @@ else
         chown -R "${PUID}":"${PGID}" /app 2>/dev/null || true
         chmod -R 755 /app 2>/dev/null || true
         echo "[info] Running npm install in /app..." | ts '%Y-%m-%d %H:%M:%.S'
-        cd /app && npm install 2>&1 | ts '%Y-%m-%d %H:%M:%.S' || echo "[warn] npm install failed" | ts '%Y-%m-%d %H:%M:%.S'
+        cd /app && npm cache clean --force 2>/dev/null || true
+        npm install --cache /tmp/.npm 2>&1 | ts '%Y-%m-%d %H:%M:%.S' || echo "[warn] npm install failed" | ts '%Y-%m-%d %H:%M:%.S'
     else
         echo "[warn] Templates not found at /templates, cannot set up /app" | ts '%Y-%m-%d %H:%M:%.S'
     fi
