@@ -11,7 +11,7 @@ ENV HOME=/home/nobody \
     LANG=en_GB.UTF-8 \
     LC_ALL=en_GB.UTF-8 \
     REMOTION_PORT=3003 \
-    NODE_PATH=/usr/local/lib/node_modules \
+    NODE_PATH=/usr/lib/node_modules \
     PATH=/usr/local/bin/system/scripts/docker:/usr/local/bin/run:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 RUN pacman -Sy --noconfirm --needed \
