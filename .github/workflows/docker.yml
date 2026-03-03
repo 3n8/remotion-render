@@ -21,11 +21,14 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Pull base image
-        run: docker pull ghcr.io/3n8/arch-base-image:latest || echo "Base image pull failed, will build anyway"
+      - name: Clone and build base image
+        run: |
+          git clone https://github.com/3n8/arch-base-image.git /tmp/arch-base
+          docker build -t ghcr.io/3n8/arch-base-image:latest /tmp/arch-base
+          docker push ghcr.io/3n8/arch-base-image:latest || true
       - name: Build and push
         run: |
           docker build -t ghcr.io/3n8/remotion-render:latest .
           docker push ghcr.io/3n8/remotion-render:latest
       - name: Cleanup
-        run: docker rmi ghcr.io/3n8/remotion-render:latest || true
+        run: docker rmi ghcr.io/3n8/remotion-render:latest ghcr.io/3n8/arch-base-image:latest || true
