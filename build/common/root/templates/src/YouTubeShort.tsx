@@ -8,10 +8,18 @@ const ShortVideo: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ backgroundColor: '#000', overflow: 'hidden' }}>
-      <Audio src={staticFile('assets/chunk1.mp3')} startFrom={0} />
-      <Audio src={staticFile('assets/chunk2.mp3')} startFrom={120} />
-      <Audio src={staticFile('assets/chunk3.mp3')} startFrom={240} />
-      <Audio src={staticFile('assets/chunk4.mp3')} startFrom={540} />
+      <Sequence from={0} duration={120}>
+        <Audio src={staticFile('assets/chunk1.mp3')} />
+      </Sequence>
+      <Sequence from={120} duration={120}>
+        <Audio src={staticFile('assets/chunk2.mp3')} />
+      </Sequence>
+      <Sequence from={240} duration={300}>
+        <Audio src={staticFile('assets/chunk3.mp3')} />
+      </Sequence>
+      <Sequence from={540} duration={210}>
+        <Audio src={staticFile('assets/chunk4.mp3')} />
+      </Sequence>
 
       <Sequence from={0} duration={120}>
         <div style={{
