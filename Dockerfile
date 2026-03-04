@@ -33,7 +33,8 @@ COPY build/common/root/utils.sh /usr/local/bin/system/scripts/docker/utils.sh
 COPY build/common/root/server.js /config/server.js
 COPY build/common/root/supervisor-remotion.conf /etc/supervisor/conf.d/remotion.conf
 COPY build/common/root/templates /templates
-RUN cp -r /templates/* /app/
+RUN cp -r /templates/* /app/ && \
+    mkdir -p /app/public/assets && cp -r /app/assets/* /app/public/assets/ 2>/dev/null || true
 
 RUN chmod +x /tmp/install.sh && /tmp/install.sh 2>/dev/null || true; rm -f /tmp/install.sh; \
     chmod +x /usr/bin/init.sh && \

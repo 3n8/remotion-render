@@ -26,6 +26,64 @@ if (fs.existsSync(CONFIG_FILE)) {
 const PORT_NUM = parseInt(config.port) || 3003;
 
 let bundledProject = null;
+let cachedCompositions = null;
+
+function parseCompositionsFromIndex() {
+  const indexPath = path.join(PROJECT_DIR, 'src/index.tsx');
+  if (!fs.existsSync(indexPath)) {
+    return [];
+  }
+  
+  const content = fs.readFileSync(indexPath, 'utf8');
+  const compositions = [];
+  
+  const compRegex = /<Composition\s+id=["']([^"']+)["']/g;
+  let match;
+  
+  while ((match = compRegex.exec(content)) !== null) {
+    const id = match[1];
+    
+    const idStart = match.index;
+    const remaining = content.substring(idStart);
+    
+    const durationMatch = remaining.match(/durationInFrames=\{(\d+)\}/);
+    const fpsMatch = remaining.match(/fps=\{(\d+)\}/);
+    const widthMatch = remaining.match(/width=\{(\d+)\}/);
+    const heightMatch = remaining.match(/height=\{(\d+)\}/);
+    
+    compositions.push({
+      id,
+      durationInFrames: durationMatch ? parseInt(durationMatch[1]) : 150,
+      fps: fpsMatch ? parseInt(fpsMatch[1]) : 30,
+      width: widthMatch ? parseInt(widthMatch[1]) : 1920,
+      height: heightMatch ? parseInt(heightMatch[1]) : 1080,
+      props: {}
+    });
+  }
+  
+  return compositions;
+}
+
+function cleanupTempFiles() {
+  try {
+    const tempDir = '/tmp';
+    const entries = fs.readdirSync(tempDir);
+    
+    for (const entry of entries) {
+      if (entry.startsWith('react-motion-render') || entry.startsWith('remotion-')) {
+        const fullPath = path.join(tempDir, entry);
+        try {
+          fs.rmSync(fullPath, { recursive: true, force: true });
+          console.log(`Cleaned up temp: ${fullPath}`);
+        } catch (e) {
+          console.log(`Could not clean ${fullPath}: ${e.message}`);
+        }
+      }
+    }
+  } catch (e) {
+    console.log(`Temp cleanup error: ${e.message}`);
+  }
+}
 
 async function ensureProjectBundled() {
   if (bundledProject) {
@@ -56,6 +114,24 @@ async function ensureProjectBundled() {
   }
 }
 
+async function ensureCompositionsLoaded() {
+  if (cachedCompositions) {
+    return cachedCompositions;
+  }
+  
+  const serveUrl = await ensureProjectBundled();
+  console.log('Parsing compositions from source...');
+  
+  try {
+    cachedCompositions = parseCompositionsFromIndex();
+    console.log(`Found ${cachedCompositions.length} compositions: ${cachedCompositions.map(c => c.id).join(', ')}`);
+    return cachedCompositions;
+  } catch (err) {
+    console.error('Failed to parse compositions:', err.message);
+    throw err;
+  }
+}
+
 const server = http.createServer(async (req, res) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
   
@@ -79,7 +155,9 @@ const server = http.createServer(async (req, res) => {
       endpoints: [
         'GET / - This help',
         'GET /health - Health check',
-        'POST /render - Render a video'
+        'GET /compositions - List available compositions',
+        'POST /render - Render a video',
+        'GET /download?file=filename.mp4&dir=config - Download a file'
       ]
     }));
     return;
@@ -88,6 +166,58 @@ const server = http.createServer(async (req, res) => {
   if (req.url === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ status: 'healthy', port: PORT_NUM, projectDir: PROJECT_DIR }));
+    return;
+  }
+
+  if (req.url === '/compositions' && req.method === 'GET') {
+    try {
+      const compositions = await ensureCompositionsLoaded();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ 
+        count: compositions.length,
+        compositions: compositions.map(c => ({
+          id: c.id,
+          durationInFrames: c.durationInFrames,
+          fps: c.fps,
+          width: c.width,
+          height: c.height
+        }))
+      }));
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
+  if (req.url.startsWith('/download') && req.method === 'GET') {
+    const url = new URL(req.url, `http://localhost:${PORT_NUM}`);
+    const file = url.searchParams.get('file');
+    const dir = url.searchParams.get('dir') || 'config';
+    
+    if (!file) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Missing file parameter. Usage: /download?file=filename.mp4&dir=config' }));
+      return;
+    }
+    
+    const filePath = path.join('/', dir, file);
+    
+    if (!fs.existsSync(filePath)) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: `File not found: ${filePath}` }));
+      return;
+    }
+    
+    const stat = fs.statSync(filePath);
+    res.writeHead(200, {
+      'Content-Type': 'application/octet-stream',
+      'Content-Length': stat.size,
+      'Content-Disposition': `attachment; filename="${file}"`
+    });
+    
+    fs.createReadStream(filePath).pipe(res);
+    console.log(`Downloaded: ${filePath}`);
     return;
   }
 
@@ -100,29 +230,29 @@ const server = http.createServer(async (req, res) => {
         const compositionId = options.compositionId || 'Hello';
         const outputLocation = options.outputLocation || '/data/output.mp4';
         
+        const compositions = await ensureCompositionsLoaded();
+        const composition = compositions.find(c => c.id === compositionId);
+        
+        if (!composition) {
+          throw new Error(`Composition '${compositionId}' not found. Available: ${compositions.map(c => c.id).join(', ')}`);
+        }
+        
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ 
           status: 'rendering',
           compositionId,
           outputLocation,
+          durationInFrames: composition.durationInFrames,
+          fps: composition.fps,
           message: 'Render started'
         }));
 
         const serveUrl = await ensureProjectBundled();
         
-        console.log(`Starting render: ${compositionId} -> ${outputLocation}`);
-        
-        const defaultComposition = {
-          id: 'Hello',
-          durationInFrames: 150,
-          fps: 30,
-          height: 1080,
-          width: 1920,
-          props: {},
-        };
+        console.log(`Starting render: ${compositionId} (${composition.durationInFrames} frames) -> ${outputLocation}`);
         
         await renderMedia({
-          composition: options.composition || defaultComposition,
+          composition,
           serveUrl,
           outputLocation,
           codec: options.codec || 'h264',
@@ -133,6 +263,9 @@ const server = http.createServer(async (req, res) => {
         });
 
         console.log(`Render complete: ${outputLocation}`);
+        
+        cleanupTempFiles();
+        
       } catch (e) {
         console.error('Render error:', e.message);
       }

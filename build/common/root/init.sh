@@ -121,6 +121,11 @@ if [[ -d "/app" ]] && [[ -f "/app/package.json" ]] && [[ -d "/app/src" ]]; then
     else
         echo "[info] node_modules already exists, skipping npm install" | ts '%Y-%m-%d %H:%M:%.S'
     fi
+    if [[ -d "/app/assets" ]]; then
+        echo "[info] Setting up /app/public/assets for static assets..." | ts '%Y-%m-%d %H:%M:%.S'
+        mkdir -p /app/public/assets
+        cp -r /app/assets/* /app/public/assets/ 2>/dev/null || true
+    fi
 else
     echo "[info] No valid Remotion project at /app, creating from templates..." | ts '%Y-%m-%d %H:%M:%.S'
     if [[ -d "/templates" ]]; then
@@ -131,6 +136,11 @@ else
         echo "[info] Running npm install in /app..." | ts '%Y-%m-%d %H:%M:%.S'
         cd /app && npm cache clean --force 2>/dev/null || true
         npm install --cache /tmp/.npm 2>&1 | ts '%Y-%m-%d %H:%M:%.S' || echo "[warn] npm install failed" | ts '%Y-%m-%d %H:%M:%.S'
+        if [[ -d "/app/assets" ]]; then
+            echo "[info] Setting up /app/public/assets for static assets..." | ts '%Y-%m-%d %H:%M:%.S'
+            mkdir -p /app/public/assets
+            cp -r /app/assets/* /app/public/assets/ 2>/dev/null || true
+        fi
     else
         echo "[warn] Templates not found at /templates, cannot set up /app" | ts '%Y-%m-%d %H:%M:%.S'
     fi
