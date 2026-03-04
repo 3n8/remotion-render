@@ -15,7 +15,7 @@ registerRoot(() => (
       height={1080}
     />
     <Composition
-      id="YouTubeShort_Basic"
+      id="YouTubeShort-Basic"
       component={ShortVideo}
       durationInFrames={750}
       fps={30}
@@ -23,7 +23,7 @@ registerRoot(() => (
       height={1920}
     />
     <Composition
-      id="YouTubeShort_Layers"
+      id="YouTubeShort-Layers"
       component={LayersStyle}
       durationInFrames={750}
       fps={30}
@@ -31,7 +31,7 @@ registerRoot(() => (
       height={1920}
     />
     <Composition
-      id="YouTubeShort_SVG"
+      id="YouTubeShort-SVG"
       component={SVGStyle}
       durationInFrames={750}
       fps={30}
