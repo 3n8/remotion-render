@@ -149,6 +149,8 @@ fi
 set +e
 mkdir -p /config/run 2>/dev/null
 chmod 775 /config/run 2>/dev/null
+chmod -R 777 /config 2>/dev/null || true
+chmod -R 777 /data 2>/dev/null || true
 set -e
 
 REMOTION_PORT="${REMOTION_PORT:-3003}"
