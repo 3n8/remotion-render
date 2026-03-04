@@ -296,13 +296,17 @@ const SVGStyle: React.FC = () => {
       <Sequence from={690} duration={60}>
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
           <Svg width="100%" height="100%" viewBox="0 0 1080 1920" style={{ position: 'absolute' }}>
-            <rect width="1080" height="1920" fill="linear-gradient(180deg, #0d3d0d 0%, #1a5a1a 100%)" />
             <defs>
+              <linearGradient id="ctaBg" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#0d3d0d" />
+                <stop offset="100%" stopColor="#1a5a1a" />
+              </linearGradient>
               <radialGradient id="ctaGlow" cx="50%" cy="50%" r="50%">
                 <stop offset="0%" stopColor="rgba(100,255,100,0.2)" />
                 <stop offset="100%" stopColor="transparent" />
               </radialGradient>
             </defs>
+            <rect width="1080" height="1920" fill="url(#ctaBg)" />
             <circle cx="540" cy="800" r="300" fill="url(#ctaGlow)" />
           </Svg>
           <div style={{
